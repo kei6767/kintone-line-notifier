@@ -43,7 +43,7 @@ jobs:
               headers: { "X-Cybozu-API-Token": process.env.KINTONE_TOKEN },
               params: {
                 app: 10,
-                query: `eigyo_status like "保留" and 日時 < "${today}"`
+                query: `eigyo_status in ("保留") and 日時 < "${today}"`
               }
             }
           );
