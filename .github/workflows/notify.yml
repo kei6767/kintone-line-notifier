@@ -2,83 +2,104 @@ name: Notify LINE from kintone
 
 on:
   schedule:
-    - cron: '0 16 * * *'
+    - cron: '0 16 * * *'   # 毎日25時＝翌日1時：未対応アラート
+    - cron: '0 23 * * *'   # 毎朝8時：本日アポ通知（UTCで23時）
   workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install dependencies
-      run: npm install axios dayjs
+      - name: Install dependencies
+        run: npm install axios dayjs
 
-    - name: Run notification script
-      env:
-        KINTONE_TOKEN: ${{ secrets.KINTONE_TOKEN }}
-        KINTONE_DOMAIN: ${{ secrets.KINTONE_DOMAIN }}
-        LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
-        GROUP_ID: ${{ secrets.GROUP_ID }}
-      run: |
-        echo "Running notification..."
-        echo "require('axios'); require('dayjs');" > notify.js
-        node <<'EOF'
-        const axios = require("axios");
-        const dayjs = require("dayjs");
+      - name: Run notification script
+        env:
+          KINTONE_TOKEN: ${{ secrets.KINTONE_TOKEN }}
+          KINTONE_DOMAIN: ${{ secrets.KINTONE_DOMAIN }}
+          LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
+          GROUP_ID: ${{ secrets.GROUP_ID }}
+        run: |
+          echo "Running notification..."
+          node <<'EOF'
+          const axios = require("axios");
+          const dayjs = require("dayjs");
 
-        (async () => {
-          const today = dayjs().format("YYYY-MM-DD");
+          (async () => {
+            const today = dayjs().format("YYYY-MM-DD");
+            const hour = dayjs().hour();
 
-          const res = await axios.get(
-            `https://${process.env.KINTONE_DOMAIN}/k/v1/records.json`,
-            {
-              headers: { "X-Cybozu-API-Token": process.env.KINTONE_TOKEN },
-              params: {
-                app: 10,
-                query: `eigyo_status in ("保留") and day < "${today}"`
+            const res = await axios.get(
+              `https://${process.env.KINTONE_DOMAIN}/k/v1/records.json`,
+              {
+                headers: { "X-Cybozu-API-Token": process.env.KINTONE_TOKEN },
+                params: {
+                  app: 10,
+                  query: `day >= \"${today}\" and day <= \"${today}\"`
+                }
               }
+            );
+
+            const records = res.data.records;
+            if (records.length === 0) {
+              console.log("✅ 通知対象なし");
+              return;
             }
-          );
 
-          const records = res.data.records;
-          if (records.length === 0) {
-            console.log("✅ 通知対象なし");
-            return;
-          }
+            let message = "";
 
-          let message = "🚨【商談未対応アラート】\\n\\n以下の案件が「保留」のままです⚠️\\n\\n";
-          for (const r of records) {
-            message += `👤 顧客名：${r["line_name"].value}\\n`;
-            message += `📅 商談予定日：${r["day"].value.split("T")[0]}\\n`;
-            message += `🙍‍♂️ 営業担当：${r["ooo"].value}\\n\\n`;
-          }
-          message += "ご確認お願いします！";
-
-          await axios.post("https://api.line.me/v2/bot/message/push",
-            {
-              to: process.env.GROUP_ID,
-              messages: [{ type: "text", text: message }]
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.LINE_TOKEN}`,
-                "Content-Type": "application/json"
+            if (hour === 16) {
+              // 未対応アラート（25時＝1時）
+              const alertRecords = records.filter(r => r["eigyo_status"].value === "保留" && r["day"].value < today);
+              if (alertRecords.length === 0) {
+                console.log("✅ 未対応アラート対象なし");
+                return;
               }
-            }
-          );
+              message = "\uD83D\uDEA8【商談未対応アラート】\n\n以下の案件が「保留」のままです⚠️\n\n";
+              for (const r of alertRecords) {
+                message += `👤 顧客名：${r["line_name"].value}\n`;
+                message += `📅 商談予定日：${r["day"].value.split("T")[0]}\n`;
+                message += `🙍‍♂️ 営業担当：${r["ooo"].value}\n\n`;
+              }
+              message += "ご確認お願いします！";
 
-          console.log("📤 LINE通知送信完了！");
-        })().catch(e => {
-          console.error("❌ エラー", e.response?.data || e.message);
-          process.exit(1);
-        });
-        EOF
+            } else if (hour === 23) {
+              // 当日アポ通知（朝8時）
+              message = "📅【本日アポのご案内】\n\n";
+              for (const r of records) {
+                message += `👤 顧客名：${r["line_name"].value}\n`;
+                message += `📅 商談予定日：${r["day"].value.split("T")[0]}\n`;
+                message += `🙍‍♂️ 営業担当：${r["ooo"].value}\n\n`;
+              }
+              message += "本日アポがあります。ご対応お願いします！";
+            }
+
+            await axios.post("https://api.line.me/v2/bot/message/push",
+              {
+                to: process.env.GROUP_ID,
+                messages: [{ type: "text", text: message }]
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.LINE_TOKEN}`,
+                  "Content-Type": "application/json"
+                }
+              }
+            );
+
+            console.log("📤 LINE通知送信完了！");
+          })().catch(e => {
+            console.error("❌ エラー", e.response?.data || e.message);
+            process.exit(1);
+          });
+          EOF
+
 
