@@ -1,3 +1,23 @@
+name: Notify LINE from kintone
+
+on:
+  schedule:
+    - cron: '0 23 * * *' # 日本時間 8:00（UTCの23:00）
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
     - name: Install dependencies
       run: npm install axios dayjs dayjs-plugin-utc dayjs-plugin-timezone
 
@@ -19,11 +39,10 @@
 
         (async () => {
           const today = dayjs().tz("Asia/Tokyo").format("YYYY-MM-DD");
-
           const headers = { "X-Cybozu-API-Token": process.env.KINTONE_TOKEN };
           const appId = 10;
 
-          // 🔔 商談未対応（保留）アラート
+          // 🔔 保留アラート
           const holdRes = await axios.get(`https://${process.env.KINTONE_DOMAIN}/k/v1/records.json`, {
             headers,
             params: {
@@ -33,7 +52,6 @@
           });
 
           const holdRecords = holdRes.data.records;
-
           if (holdRecords.length > 0) {
             let message = "🚨【商談未対応アラート】\n\n以下の案件が「保留」のままです⚠️\n\n";
             for (const r of holdRecords) {
@@ -52,11 +70,10 @@
                 "Content-Type": "application/json"
               }
             });
-
-            console.log("📤 保留アラート通知完了！");
+            console.log("📤 保留アラート送信完了！");
           }
 
-          // 🔔 当日アポ通知
+          // 🔔 本日アポ通知
           const todayRes = await axios.get(`https://${process.env.KINTONE_DOMAIN}/k/v1/records.json`, {
             headers,
             params: {
@@ -66,13 +83,12 @@
           });
 
           const todayRecords = todayRes.data.records;
-
           if (todayRecords.length > 0) {
             let message = "📅【本日アポ通知】\n\n以下のお客様に本日アポがあります！\n\n";
             for (const r of todayRecords) {
               message += `👤 顧客名：${r["line_name"].value}\n`;
-              message += `⏰ 時間：${r["day"].value.split("T")[0]}\n`;
-              message += `🙍‍♂️ 担当：${r["ooo"].value}\n\n`;
+              message += `📅 商談予定日：${r["day"].value.split("T")[0]}\n`;
+              message += `🙍‍♂️ 営業担当：${r["ooo"].value}\n\n`;
             }
             message += "対応をお願いします！";
 
@@ -85,8 +101,7 @@
                 "Content-Type": "application/json"
               }
             });
-
-            console.log("📤 本日アポ通知完了！");
+            console.log("📤 本日アポ通知送信完了！");
           }
 
           if (holdRecords.length === 0 && todayRecords.length === 0) {
@@ -98,6 +113,7 @@
           process.exit(1);
         });
         EOF
+
 
 
 
