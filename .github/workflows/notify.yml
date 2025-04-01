@@ -90,7 +90,7 @@ jobs:
 
             // ② 本日アポあり
             const todayRecords = await fetchRecords(
-              `day = "${today}"`
+              `day like "${today}"`
             );
             if (todayRecords.length > 0) {
               let message = "✅【本日の商談予定】\n\n以下の案件があります📅\n\n";
