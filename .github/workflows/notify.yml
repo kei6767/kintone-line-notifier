@@ -2,7 +2,7 @@ name: Notify LINE from kintone
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 日本時間 25時（UTCで16時）
+    - cron: '0 16 * * *'
   workflow_dispatch:
 
 jobs:
@@ -21,14 +21,16 @@ jobs:
     - name: Install dependencies
       run: npm install axios dayjs
 
-    - name: Run script
+    - name: Run notification script
       env:
         KINTONE_TOKEN: ${{ secrets.KINTONE_TOKEN }}
         KINTONE_DOMAIN: ${{ secrets.KINTONE_DOMAIN }}
         LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
         GROUP_ID: ${{ secrets.GROUP_ID }}
       run: |
-        node <<EOF
+        echo "Running notification..."
+        echo "require('axios'); require('dayjs');" > notify.js
+        node <<'EOF'
         const axios = require("axios");
         const dayjs = require("dayjs");
 
@@ -36,26 +38,29 @@ jobs:
           const today = dayjs().format("YYYY-MM-DD");
 
           const res = await axios.get(
-            \`https://${process.env.KINTONE_DOMAIN}/k/v1/records.json\`,
+            `https://${process.env.KINTONE_DOMAIN}/k/v1/records.json`,
             {
               headers: { "X-Cybozu-API-Token": process.env.KINTONE_TOKEN },
               params: {
                 app: 10,
-                query: \`日時 < "${today}" and 営業ステータス = "保留"\`
+                query: `日時 < "${today}" and 営業ステータス = "保留"`
               }
             }
           );
 
           const records = res.data.records;
-          if (records.length === 0) return;
-
-          let message = "【商談未対応アラート】\\n\\n以下の案件が「保留」のままです⚠️\\n\\n";
-          for (const r of records) {
-            message += \`顧客名：\${r["顧客名（LINE名）"].value}\\n\`;
-            message += \`商談予定日：\${r["日時"].value.split("T")[0]}\\n\`;
-            message += \`営業担当：\${r["営業担当"].value}\\n\\n\`;
+          if (records.length === 0) {
+            console.log("✅ 通知対象なし");
+            return;
           }
-          message += "ご確認お願いいたします。";
+
+          let message = "🚨【商談未対応アラート】\\n\\n以下の案件が「保留」のままです⚠️\\n\\n";
+          for (const r of records) {
+            message += `👤 顧客名：${r["顧客名（LINE名）"].value}\\n`;
+            message += `📅 商談予定日：${r["日時"].value.split("T")[0]}\\n`;
+            message += `🙍‍♂️ 営業担当：${r["営業担当"].value}\\n\\n`;
+          }
+          message += "ご確認お願いします！";
 
           await axios.post("https://api.line.me/v2/bot/message/push",
             {
@@ -64,13 +69,16 @@ jobs:
             },
             {
               headers: {
-                Authorization: \`Bearer \${process.env.LINE_TOKEN}\`,
+                Authorization: `Bearer ${process.env.LINE_TOKEN}`,
                 "Content-Type": "application/json"
               }
             }
           );
+
+          console.log("📤 LINE通知送信完了！");
         })().catch(e => {
           console.error("❌ エラー", e.response?.data || e.message);
           process.exit(1);
         });
         EOF
+
