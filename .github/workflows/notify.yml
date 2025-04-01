@@ -59,11 +59,11 @@ jobs:
 
             const records = resPending.data.records;
             if (records.length > 0) {
-              let msg = "🚨【商談未対応アラート】\n\n以下の案件が「保留」のままです⚠️\n\n";
+              let msg = "【商談未対応アラート】\n\n以下の案件が「保留」のままです。\n\n";
               for (const r of records) {
-                msg += `👤 顧客名：${r["line_name"].value}\n📅 商談予定日：${r["day"].value.split("T")[0]}\n🙍‍♂️ 営業担当：${r["ooo"].value}\n\n`;
+                msg += `顧客名：${r["line_name"].value}\n商談予定日：${r["day"].value.split("T")[0]}\n営業担当：${r["ooo"].value}\n\n`;
               }
-              msg += "ご確認お願いします！";
+              msg += "ご確認お願いいたします。";
               messages.push(msg);
             }
           } catch (e) {
@@ -83,11 +83,11 @@ jobs:
 
             const records = resToday.data.records;
             if (records.length > 0) {
-              let msg = "📅【本日アポ通知】\n\n本日アポがある方は以下の通りです！\n\n";
+              let msg = "【本日アポ通知】\n\n本日アポがある方は以下の通りです！\n\n";
               for (const r of records) {
-                msg += `👤 顧客名：${r["line_name"].value}\n🕒 商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n🙍‍♂️ 営業担当：${r["ooo"].value}\n\n`;
+                msg += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
               }
-              msg += "よろしくお願いします！";
+              msg += "本日よろしくお願いいたします！";
               messages.push(msg);
             }
           } catch (e) {
