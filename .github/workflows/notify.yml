@@ -71,7 +71,7 @@ jobs:
             process.exit(1);
           }
 
-          // ▼ 本日アポ通知
+          // ▼ 本日アポ通知（通常アポ：day）
           try {
             const resToday = await axios.get(kintoneUrl, {
               headers,
@@ -87,11 +87,33 @@ jobs:
               for (const r of records) {
                 msg += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
               }
-              msg += "本日よろしくお願いいたします！";
               messages.push(msg);
             }
           } catch (e) {
-            console.error("❌ 本日アポ通知エラー", e.response?.data || e.message);
+            console.error("❌ 本日アポ通知（day）エラー", e.response?.data || e.message);
+            process.exit(1);
+          }
+
+          // ▼ 本日アポ通知（再アポ：day2）
+          try {
+            const resToday2 = await axios.get(kintoneUrl, {
+              headers,
+              params: {
+                app: appId,
+                query: `day2 >= "${today}" and day2 < "${tomorrow}"`
+              }
+            });
+
+            const records2 = resToday2.data.records;
+            if (records2.length > 0) {
+              let msg = "【本日再アポ通知】\n\n本日再アポがある方は以下の通りです！\n\n";
+              for (const r of records2) {
+                msg += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
+              }
+              messages.push(msg);
+            }
+          } catch (e) {
+            console.error("❌ 本日アポ通知（day2）エラー", e.response?.data || e.message);
             process.exit(1);
           }
 
