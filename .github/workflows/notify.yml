@@ -91,6 +91,7 @@ jobs:
               for (const r of records) {
                 msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n`;
               }
+              msgToday += "\n";
               hasApo = true;
             }
           } catch (e) {
@@ -114,6 +115,7 @@ jobs:
               for (const r of records2) {
                 msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n`;
               }
+              msgToday += "\n";
               hasApo = true;
             }
           } catch (e) {
@@ -122,6 +124,7 @@ jobs:
           }
 
           if (hasApo) {
+            msgToday += "よろしくお願いいたします！";
             messages.push(msgToday);
           }
 
@@ -150,4 +153,5 @@ jobs:
           process.exit(1);
         });
         EOF
+
 
