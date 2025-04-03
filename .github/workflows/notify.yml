@@ -71,7 +71,11 @@ jobs:
             process.exit(1);
           }
 
-          // ▼ 本日アポ通知（通常アポ：day）
+          // ▼ 本日アポまとめ通知
+          let msgToday = "【本日アポ・再アポ通知】\n\n";
+          let hasApo = false;
+
+          // 通常アポ（day）
           try {
             const resToday = await axios.get(kintoneUrl, {
               headers,
@@ -83,18 +87,18 @@ jobs:
 
             const records = resToday.data.records;
             if (records.length > 0) {
-              let msg = "【本日アポ通知】\n\n本日アポがある方は以下の通りです！\n\n";
+              msgToday += "▼ 通常アポ\n";
               for (const r of records) {
-                msg += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
+                msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
               }
-              messages.push(msg);
+              hasApo = true;
             }
           } catch (e) {
             console.error("❌ 本日アポ通知（day）エラー", e.response?.data || e.message);
             process.exit(1);
           }
 
-          // ▼ 本日アポ通知（再アポ：day2）
+          // 再アポ（day2）
           try {
             const resToday2 = await axios.get(kintoneUrl, {
               headers,
@@ -106,15 +110,19 @@ jobs:
 
             const records2 = resToday2.data.records;
             if (records2.length > 0) {
-              let msg = "【本日再アポ通知】\n\n本日再アポがある方は以下の通りです！\n\n";
+              msgToday += "▼ 再アポ\n";
               for (const r of records2) {
-                msg += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
+                msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n\n`;
               }
-              messages.push(msg);
+              hasApo = true;
             }
           } catch (e) {
             console.error("❌ 本日アポ通知（day2）エラー", e.response?.data || e.message);
             process.exit(1);
+          }
+
+          if (hasApo) {
+            messages.push(msgToday);
           }
 
           // ▼ LINE送信処理
@@ -142,3 +150,4 @@ jobs:
           process.exit(1);
         });
         EOF
+
