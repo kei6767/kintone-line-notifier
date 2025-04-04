@@ -43,9 +43,6 @@ jobs:
           const today = dayjs().tz("Asia/Tokyo").format("YYYY-MM-DD");
           const tomorrow = dayjs().tz("Asia/Tokyo").add(1, 'day').format("YYYY-MM-DD");
 
-          console.log(`📅 今日: ${today}`);
-          console.log(`📅 明日: ${tomorrow}`);
-
           const headers = {
             "X-Cybozu-API-Token": process.env.KINTONE_TOKEN
           };
@@ -161,6 +158,3 @@ jobs:
           process.exit(1);
         });
         EOF
-
-
-
