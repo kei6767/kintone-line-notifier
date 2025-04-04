@@ -2,7 +2,7 @@ name: Notify LINE from kintone
 
 on:
   schedule:
-    - cron: '0 16 * * *' # 日本時間25時（=翌1時）
+    - cron: '0 16 * * *' # 日本時間25時（翌1時）
     - cron: '0 23 * * *' # 日本時間8時
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
         node-version: 18
 
     - name: Install dependencies
-      run: npm install axios dayjs dayjs-plugin-utc dayjs-plugin-timezone
+      run: npm install axios dayjs
 
     - name: Run notification script
       env:
@@ -97,7 +97,7 @@ jobs:
             if (records.length > 0) {
               msgToday += "▼ 通常アポ\n";
               for (const r of records) {
-                msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n`;
+                msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n`;
               }
               msgToday += "\n";
               hasApo = true;
@@ -121,7 +121,7 @@ jobs:
             if (records2.length > 0) {
               msgToday += "▼ 再アポ\n";
               for (const r of records2) {
-                msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n`;
+                msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n`;
               }
               msgToday += "\n";
               hasApo = true;
@@ -161,5 +161,6 @@ jobs:
           process.exit(1);
         });
         EOF
+
 
 
