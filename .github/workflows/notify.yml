@@ -2,8 +2,8 @@ name: Notify LINE from kintone
 
 on:
   schedule:
-    - cron: '0 16 * * *' # 日本時間25時（UTC16時）
-    - cron: '0 23 * * *' # 日本時間8時（UTC23時）
+    - cron: '0 16 * * *' # 日本時間25時（=翌1時）
+    - cron: '0 23 * * *' # 日本時間8時
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
         node-version: 18
 
     - name: Install dependencies
-      run: npm install axios dayjs
+      run: npm install axios dayjs dayjs-plugin-utc dayjs-plugin-timezone
 
     - name: Run notification script
       env:
@@ -33,10 +33,18 @@ jobs:
         node <<'EOF'
         const axios = require("axios");
         const dayjs = require("dayjs");
+        const utc = require("dayjs/plugin/utc");
+        const timezone = require("dayjs/plugin/timezone");
+
+        dayjs.extend(utc);
+        dayjs.extend(timezone);
 
         (async () => {
-          const today = dayjs().format("YYYY-MM-DD");
-          const tomorrow = dayjs(today).add(1, 'day').format("YYYY-MM-DD");
+          const today = dayjs().tz("Asia/Tokyo").format("YYYY-MM-DD");
+          const tomorrow = dayjs().tz("Asia/Tokyo").add(1, 'day').format("YYYY-MM-DD");
+
+          console.log(`📅 今日: ${today}`);
+          console.log(`📅 明日: ${tomorrow}`);
 
           const headers = {
             "X-Cybozu-API-Token": process.env.KINTONE_TOKEN
