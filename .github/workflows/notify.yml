@@ -92,7 +92,7 @@ jobs:
 
             const records = resToday.data.records;
             if (records.length > 0) {
-              msgToday += "▼ 通常アポ\n";
+              msgToday += "▼ 新規アポ\n";
               for (const r of records) {
                 msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
               }
