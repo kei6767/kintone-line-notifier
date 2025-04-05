@@ -40,8 +40,10 @@ jobs:
         dayjs.extend(timezone);
 
         (async () => {
-          const today = dayjs().tz("Asia/Tokyo").format("YYYY-MM-DD");
-          const tomorrow = dayjs().tz("Asia/Tokyo").add(1, 'day').format("YYYY-MM-DD");
+          const now = dayjs().tz("Asia/Tokyo");
+          const hour = now.hour();
+          const today = now.format("YYYY-MM-DD");
+          const tomorrow = now.add(1, 'day').format("YYYY-MM-DD");
 
           const headers = {
             "X-Cybozu-API-Token": process.env.KINTONE_TOKEN
@@ -52,83 +54,82 @@ jobs:
 
           let messages = [];
 
-          // ▼ 保留通知（商談未対応）
-          try {
-            const resPending = await axios.get(kintoneUrl, {
-              headers,
-              params: {
-                app: appId,
-                query: `eigyo_status in ("保留") and day < "${today}"`
-              }
-            });
+          // ▼ 保留通知（商談未対応）: 25時のみ（hour === 1）
+          if (hour === 1) {
+            try {
+              const resPending = await axios.get(kintoneUrl, {
+                headers,
+                params: {
+                  app: appId,
+                  query: `eigyo_status in ("保留") and day < "${today}"`
+                }
+              });
 
-            const records = resPending.data.records;
-            if (records.length > 0) {
-              let msg = "【商談未対応アラート】\n\n以下の案件が「保留」のままです。\n\n";
-              for (const r of records) {
-                msg += `顧客名：${r["line_name"].value}\n商談予定日：${r["day"].value.split("T")[0]}\n営業担当：${r["ooo"].value}\n\n`;
+              const records = resPending.data.records;
+              if (records.length > 0) {
+                let msg = "【商談未対応アラート】\n\n以下の案件が「保留」のままです。\n\n";
+                for (const r of records) {
+                  msg += `顧客名：${r["line_name"].value}\n商談予定日：${r["day"].value.split("T")[0]}\n営業担当：${r["ooo"].value}\n\n`;
+                }
+                msg += "ご確認お願いいたします。";
+                messages.push(msg);
               }
-              msg += "ご確認お願いいたします。";
-              messages.push(msg);
+            } catch (e) {
+              console.error("❌ 保留通知エラー", e.response?.data || e.message);
+              process.exit(1);
             }
-          } catch (e) {
-            console.error("❌ 保留通知エラー", e.response?.data || e.message);
-            process.exit(1);
           }
 
-          // ▼ 本日アポまとめ通知
-          let msgToday = "【本日アポ・再アポ通知】\n\n";
-          let hasApo = false;
+          // ▼ 本日アポ通知（新規・再アポ）: 8時のみ（hour === 8）
+          if (hour === 8) {
+            let msgToday = "【本日アポ・再アポ通知】\n\n";
+            let hasApo = false;
 
-          // 通常アポ（day）
-          try {
-            const resToday = await axios.get(kintoneUrl, {
-              headers,
-              params: {
-                app: appId,
-                query: `day >= "${today}" and day < "${tomorrow}"`
-              }
-            });
+            try {
+              // 新規アポ（day）
+              const resToday = await axios.get(kintoneUrl, {
+                headers,
+                params: {
+                  app: appId,
+                  query: `day >= "${today}" and day < "${tomorrow}"`
+                }
+              });
 
-            const records = resToday.data.records;
-            if (records.length > 0) {
-              msgToday += "▼ 新規アポ\n";
-              for (const r of records) {
-                msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
+              const records = resToday.data.records;
+              if (records.length > 0) {
+                msgToday += "▼ 新規アポ\n";
+                for (const r of records) {
+                  msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
+                }
+                hasApo = true;
               }
-              hasApo = true;
+
+              // 再アポ（day2）
+              const resToday2 = await axios.get(kintoneUrl, {
+                headers,
+                params: {
+                  app: appId,
+                  query: `day2 >= "${today}" and day2 < "${tomorrow}"`
+                }
+              });
+
+              const records2 = resToday2.data.records;
+              if (records2.length > 0) {
+                msgToday += "▼ 再アポ\n";
+                for (const r of records2) {
+                  msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
+                }
+                hasApo = true;
+              }
+
+              if (hasApo) {
+                msgToday += "よろしくお願いいたします！";
+                messages.push(msgToday);
+              }
+            } catch (e) {
+              console.error("❌ 本日アポ通知エラー", e.response?.data || e.message);
+              process.exit(1);
             }
-          } catch (e) {
-            console.error("❌ 本日アポ通知（day）エラー", e.response?.data || e.message);
-            process.exit(1);
-          }
-
-          // 再アポ（day2）
-          try {
-            const resToday2 = await axios.get(kintoneUrl, {
-              headers,
-              params: {
-                app: appId,
-                query: `day2 >= "${today}" and day2 < "${tomorrow}"`
-              }
-            });
-
-            const records2 = resToday2.data.records;
-            if (records2.length > 0) {
-              msgToday += "▼ 再アポ\n";
-              for (const r of records2) {
-                msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
-              }
-              hasApo = true;
-            }
-          } catch (e) {
-            console.error("❌ 本日アポ通知（day2）エラー", e.response?.data || e.message);
-            process.exit(1);
-          }
-
-          if (hasApo) {
-            msgToday += "よろしくお願いいたします！";
-            messages.push(msgToday);
           }
 
           // ▼ LINE送信処理
@@ -156,3 +157,4 @@ jobs:
           process.exit(1);
         });
         EOF
+
