@@ -96,11 +96,16 @@ jobs:
 
               const records = resToday.data.records;
               console.log("📅 新規アポ件数:", records.length);
+              console.log("📅 新規アポ取得確認ログ:", records.map(r => ({
+                name: r["line_name"].value,
+                status: r["eigyo_status"].value,
+                date: dayjs(r["day"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")
+              })));
 
               if (records.length > 0) {
                 msgToday += "▼ 新規アポ\n";
                 for (const r of records) {
-                  msgToday += `顧客名：${r["line_name"].value}\n商談時間：${r["day"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
+                  msgToday += `顧客名：${r["line_name"].value}\n商談時間：${dayjs(r["day"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
                 }
                 hasApo = true;
               }
@@ -116,11 +121,16 @@ jobs:
 
               const records2 = resToday2.data.records;
               console.log("📅 再アポ件数:", records2.length);
+              console.log("📅 再アポ取得確認ログ:", records2.map(r => ({
+                name: r["line_name"].value,
+                status: r["eigyo_status"].value,
+                date: dayjs(r["day2"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")
+              })));
 
               if (records2.length > 0) {
                 msgToday += "▼ 再アポ\n";
                 for (const r of records2) {
-                  msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${r["day2"].value.replace("T", " ").slice(0, 16)}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
+                  msgToday += `顧客名：${r["line_name"].value}\n再アポ時間：${dayjs(r["day2"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")}\n営業担当：${r["ooo"].value}\n集客経路：${r["apo"]?.value || "不明"}\n\n`;
                 }
                 hasApo = true;
               }
