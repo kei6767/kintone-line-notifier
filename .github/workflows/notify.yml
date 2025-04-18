@@ -76,7 +76,6 @@ jobs:
               }
             } catch (e) {
               console.error("❌ 保留通知エラー", e.response?.data || e.message);
-              process.exit(1);
             }
           }
 
@@ -91,11 +90,13 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day >= "${today}" and day < "${tomorrow}"`
+                  query: `day >= "${today}T00:00:00" and day < "${tomorrow}T00:00:00"`
                 }
               });
 
               const records = resToday.data.records;
+              console.log("📅 新規アポ件数:", records.length);
+
               if (records.length > 0) {
                 msgToday += "▼ 新規アポ\n";
                 for (const r of records) {
@@ -109,11 +110,13 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day2 >= "${today}" and day2 < "${tomorrow}"`
+                  query: `day2 >= "${today}T00:00:00" and day2 < "${tomorrow}T00:00:00"`
                 }
               });
 
               const records2 = resToday2.data.records;
+              console.log("📅 再アポ件数:", records2.length);
+
               if (records2.length > 0) {
                 msgToday += "▼ 再アポ\n";
                 for (const r of records2) {
@@ -128,33 +131,39 @@ jobs:
               }
             } catch (e) {
               console.error("❌ 本日アポ通知エラー", e.response?.data || e.message);
-              process.exit(1);
             }
           }
 
           // ▼ LINE送信処理
           if (messages.length > 0) {
+            console.log("📝 通知対象メッセージ数:", messages.length);
+            console.log("📝 通知内容:", messages);
+
             for (const text of messages) {
-              await axios.post("https://api.line.me/v2/bot/message/push",
-                {
-                  to: process.env.GROUP_ID,
-                  messages: [{ type: "text", text }]
-                },
-                {
-                  headers: {
-                    Authorization: `Bearer ${process.env.LINE_TOKEN}`,
-                    "Content-Type": "application/json"
+              try {
+                await axios.post("https://api.line.me/v2/bot/message/push",
+                  {
+                    to: process.env.GROUP_ID,
+                    messages: [{ type: "text", text }]
+                  },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${process.env.LINE_TOKEN}`,
+                      "Content-Type": "application/json"
+                    }
                   }
-                }
-              );
+                );
+              } catch (e) {
+                console.error("❌ LINE送信エラー", e.response?.data || e.message);
+              }
             }
+
             console.log("📤 LINE通知送信完了");
           } else {
             console.log("✅ 通知対象なし");
           }
         })().catch(e => {
-          console.error("❌ エラー", e.response?.data || e.message);
-          process.exit(1);
+          console.error("❌ 想定外のエラー", e.response?.data || e.message);
         });
         EOF
 
