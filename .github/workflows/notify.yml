@@ -90,7 +90,7 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day >= "${today}T00:00:00" and day < "${tomorrow}T00:00:00"`
+                  query: `day >= "${today}T00:00:00" and day < "${tomorrow}T00:00:00" and not eigyo_status in ("キャンセル", "成約")`
                 }
               });
 
@@ -110,7 +110,7 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day2 >= "${today}T00:00:00" and day2 < "${tomorrow}T00:00:00"`
+                  query: `day2 >= "${today}T00:00:00" and day2 < "${tomorrow}T00:00:00" and not eigyo_status in ("キャンセル", "成約")`
                 }
               });
 
@@ -166,4 +166,3 @@ jobs:
           console.error("❌ 想定外のエラー", e.response?.data || e.message);
         });
         EOF
-
