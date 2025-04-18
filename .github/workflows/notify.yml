@@ -54,7 +54,7 @@ jobs:
 
           let messages = [];
 
-          // ▼ 本日アポ通知（デバッグ用：常時実行）
+          // ▼ 本日アポ通知（常時実行）
           {
             let msgToday = "【本日アポ・再アポ通知】\n\n";
             let hasApo = false;
@@ -65,7 +65,7 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day >= "${today}T00:00:00" and day < "${tomorrow}T00:00:00" and not eigyo_status in ("キャンセル", "成約")`
+                  query: `day >= "${today}T00:00:00" and day < "${tomorrow}T00:00:00" and eigyo_status in ("保留", "再アポ")`
                 }
               });
 
@@ -90,7 +90,7 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day2 >= "${today}T00:00:00" and day2 < "${tomorrow}T00:00:00" and not eigyo_status in ("キャンセル", "成約")`
+                  query: `day2 >= "${today}T00:00:00" and day2 < "${tomorrow}T00:00:00" and eigyo_status in ("保留", "再アポ")`
                 }
               });
 
