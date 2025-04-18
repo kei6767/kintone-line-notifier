@@ -54,8 +54,8 @@ jobs:
 
           let messages = [];
 
-          // ▼ 本日アポ通知（常時実行）
-          {
+          // ▼ 本日アポ通知（新規・再アポ）: 8時のみ（hour === 8）
+          if (hour === 8) {
             let msgToday = "【本日アポ・再アポ通知】\n\n";
             let hasApo = false;
 
