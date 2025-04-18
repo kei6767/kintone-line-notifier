@@ -54,33 +54,8 @@ jobs:
 
           let messages = [];
 
-          // ▼ 保留通知（商談未対応）: 25時のみ（hour === 1）
-          if (hour === 1) {
-            try {
-              const resPending = await axios.get(kintoneUrl, {
-                headers,
-                params: {
-                  app: appId,
-                  query: `eigyo_status in ("保留") and day < "${today}"`
-                }
-              });
-
-              const records = resPending.data.records;
-              if (records.length > 0) {
-                let msg = "【商談未対応アラート】\n\n以下の案件が「保留」のままです。\n\n";
-                for (const r of records) {
-                  msg += `顧客名：${r["line_name"].value}\n商談予定日：${r["day"].value.split("T")[0]}\n営業担当：${r["ooo"].value}\n\n`;
-                }
-                msg += "ご確認お願いいたします。";
-                messages.push(msg);
-              }
-            } catch (e) {
-              console.error("❌ 保留通知エラー", e.response?.data || e.message);
-            }
-          }
-
-          // ▼ 本日アポ通知（新規・再アポ）: 8時のみ（hour === 8）
-          if (hour === 8) {
+          // ▼ 本日アポ通知（デバッグ用：常時実行）
+          {
             let msgToday = "【本日アポ・再アポ通知】\n\n";
             let hasApo = false;
 
@@ -146,8 +121,8 @@ jobs:
 
           // ▼ LINE送信処理
           if (messages.length > 0) {
-            console.log("📝 通知対象メッセージ数:", messages.length);
-            console.log("📝 通知内容:", messages);
+            console.log("📨 通知対象メッセージ数:", messages.length);
+            console.log("📨 通知内容:", messages);
 
             for (const text of messages) {
               try {
@@ -176,3 +151,4 @@ jobs:
           console.error("❌ 想定外のエラー", e.response?.data || e.message);
         });
         EOF
+
