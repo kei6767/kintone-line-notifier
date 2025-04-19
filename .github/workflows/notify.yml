@@ -54,13 +54,12 @@ jobs:
 
           let messages = [];
 
-          // ▼ 本日アポ通知（新規・再アポ）: 8時のみ（hour === 8）
+          // ▼ 本日アポ通知（8時限定）
           if (hour === 8) {
             let msgToday = "【本日アポ・再アポ通知】\n\n";
             let hasApo = false;
 
             try {
-              // 新規アポ（day）
               const resToday = await axios.get(kintoneUrl, {
                 headers,
                 params: {
@@ -70,12 +69,6 @@ jobs:
               });
 
               const records = resToday.data.records;
-              console.log("📅 新規アポ件数:", records.length);
-              console.log("📅 新規アポ取得確認ログ:", records.map(r => ({
-                name: r["line_name"].value,
-                status: r["eigyo_status"].value,
-                date: dayjs(r["day"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")
-              })));
 
               if (records.length > 0) {
                 msgToday += "▼ 新規アポ\n";
@@ -85,7 +78,6 @@ jobs:
                 hasApo = true;
               }
 
-              // 再アポ（day2）
               const resToday2 = await axios.get(kintoneUrl, {
                 headers,
                 params: {
@@ -95,12 +87,6 @@ jobs:
               });
 
               const records2 = resToday2.data.records;
-              console.log("📅 再アポ件数:", records2.length);
-              console.log("📅 再アポ取得確認ログ:", records2.map(r => ({
-                name: r["line_name"].value,
-                status: r["eigyo_status"].value,
-                date: dayjs(r["day2"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")
-              })));
 
               if (records2.length > 0) {
                 msgToday += "▼ 再アポ\n";
@@ -119,11 +105,36 @@ jobs:
             }
           }
 
+          // ▼ アポ未対応アラート（25時限定）
+          if (hour === 1) {
+            let msgOverdue = "【アポ未対応アラート】\nアポ日を過ぎてもステータスが「保留」のレコードがあります⚠️\n\n";
+            let hasOverdue = false;
+
+            try {
+              const resOverdue = await axios.get(kintoneUrl, {
+                headers,
+                params: {
+                  app: appId,
+                  query: `day < "${today}T00:00:00" and eigyo_status = "保留"`
+                }
+              });
+
+              const overdueRecords = resOverdue.data.records;
+
+              if (overdueRecords.length > 0) {
+                for (const r of overdueRecords) {
+                  msgOverdue += `顧客名：${r["line_name"].value}\nアポ日：${dayjs(r["day"].value).tz("Asia/Tokyo").format("YYYY-MM-DD HH:mm")}\n営業担当：${r["ooo"].value}\n\n`;
+                }
+                msgOverdue += "至急ご対応をお願いいたします！";
+                messages.push(msgOverdue);
+              }
+            } catch (e) {
+              console.error("❌ アポ未対応チェックエラー", e.response?.data || e.message);
+            }
+          }
+
           // ▼ LINE送信処理
           if (messages.length > 0) {
-            console.log("📨 通知対象メッセージ数:", messages.length);
-            console.log("📨 通知内容:", messages);
-
             for (const text of messages) {
               try {
                 await axios.post("https://api.line.me/v2/bot/message/push",
@@ -151,4 +162,3 @@ jobs:
           console.error("❌ 想定外のエラー", e.response?.data || e.message);
         });
         EOF
-
