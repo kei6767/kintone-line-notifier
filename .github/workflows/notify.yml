@@ -2,8 +2,8 @@ name: Notify LINE from kintone
 
 on:
   schedule:
-    - cron: '0 16 * * *' # 日本時間25時（翌1時）
-    - cron: '0 23 * * *' # 日本時間8時
+    - cron: '0 16 * * *' # 日本時間25時（＝UTC16時）
+    - cron: '0 23 * * *' # 日本時間8時（＝UTC23時）
   workflow_dispatch:
 
 jobs:
@@ -28,6 +28,7 @@ jobs:
         KINTONE_DOMAIN: ${{ secrets.KINTONE_DOMAIN }}
         LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
         GROUP_ID: ${{ secrets.GROUP_ID }}
+        MANUAL_TRIGGER: 'true'  # 手動実行で上書きする用
       run: |
         echo "Running notification..."
         node <<'EOF'
@@ -44,6 +45,7 @@ jobs:
           const hour = now.hour();
           const today = now.format("YYYY-MM-DD");
           const tomorrow = now.add(1, 'day').format("YYYY-MM-DD");
+          const isManual = process.env.MANUAL_TRIGGER === 'true';
 
           const headers = {
             "X-Cybozu-API-Token": process.env.KINTONE_TOKEN
@@ -54,8 +56,8 @@ jobs:
 
           let messages = [];
 
-          // ▼ 本日アポ通知（8時限定）
-          if (hour === 8) {
+          // ▼ 本日アポ通知（8時 or 手動）
+          if (hour === 8 || isManual) {
             let msgToday = "【本日アポ・再アポ通知】\n\n";
             let hasApo = false;
 
@@ -105,8 +107,8 @@ jobs:
             }
           }
 
-          // ▼ アポ未対応アラート（25時限定）
-          if (hour === 1) {
+          // ▼ アポ未対応アラート（25時 or 手動）
+          if (hour === 1 || isManual) {
             let msgOverdue = "【アポ未対応アラート】\nアポ日を過ぎてもステータスが「保留」のレコードがあります⚠️\n\n";
             let hasOverdue = false;
 
