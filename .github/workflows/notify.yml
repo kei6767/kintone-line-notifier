@@ -115,7 +115,7 @@ jobs:
                 headers,
                 params: {
                   app: appId,
-                  query: `day < "${today}T00:00:00" and eigyo_status = "保留"`
+                  query: `day < "${today}T00:00:00" and eigyo_status in ("保留")`
                 }
               });
 
