@@ -28,7 +28,6 @@ jobs:
         KINTONE_DOMAIN: ${{ secrets.KINTONE_DOMAIN }}
         LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
         GROUP_ID: ${{ secrets.GROUP_ID }}
-        MANUAL_TRIGGER: 'true'  # 手動実行で上書きする用
       run: |
         echo "Running notification..."
         node <<'EOF'
@@ -45,7 +44,7 @@ jobs:
           const hour = now.hour();
           const today = now.format("YYYY-MM-DD");
           const tomorrow = now.add(1, 'day').format("YYYY-MM-DD");
-          const isManual = process.env.MANUAL_TRIGGER === 'true';
+          const isManual = !["8", "1"].includes(hour.toString());
 
           const headers = {
             "X-Cybozu-API-Token": process.env.KINTONE_TOKEN
